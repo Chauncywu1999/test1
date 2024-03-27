@@ -38,14 +38,11 @@ class_names = ['airplane', 'bird']
 cifar2 = [(img, label_map[label]) for img, label in cifar10 if label in [0, 2]]
 cifar2_val = [(img, label_map[label]) for img, label in cifar10_val if label in [0, 2]]
 
-# set minibatch
+# set minibatch to train set
 train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 
-# # img test
-# img, label = cifar2[3]
-# display(img)
-
-# n_out = 2
+# set minibatch to validation set
+val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
 
 # create model
 model = nn.Sequential(nn.Linear(3072, 512),
@@ -63,7 +60,7 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 loss_fn = nn.NLLLoss()
 
 # set epochs
-n_epochs = 100
+n_epochs = 156
 
 # specify the device as "cuda"
 device = torch.device("cuda")
@@ -71,16 +68,14 @@ device = torch.device("cuda")
 # move your model to the device
 model.to(device)
 
-# move your data to the device
-# for imgs, l in train_loader:
-#     data_t = data_t.to(device)
-
 loss = None
 loss_values = []
 for epoch in range(n_epochs):
     for imgs, labels in train_loader:
+        # move data to the device
         imgs = imgs.to(device)
         labels = labels.to(device)
+
         outputs = model(imgs.view(imgs.shape[0], -1))
         loss = loss_fn(outputs, labels)
 
@@ -95,4 +90,23 @@ plt.plot(np.arange(1, len(loss_values) + 1), loss_values)
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.show()
+
+# compute the Accuracy
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for imgs, labels in val_loader:
+        # move data to the device
+        imgs = imgs.to(device)
+        labels = labels.to(device)
+
+        batch_size = imgs.shape[0]
+        outputs = model(imgs.view(batch_size, -1))
+        _, predicted = torch.max(outputs, dim=1)
+        total += labels.shape[0]
+        correct += int((predicted == labels).sum())
+
+print("Accuracy: %f" % (correct / total))
+
 
