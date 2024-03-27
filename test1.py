@@ -34,6 +34,8 @@ class_names = ['airplane', 'bird']
 cifar2 = [(img, label_map[label]) for img, label in cifar10 if label in [0, 2]]
 cifar2_val = [(img, label_map[label]) for img, label in cifar10_val if label in [0, 2]]
 
+# set minibatch
+train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 
 # # img test
 # img, label = cifar2[3]
@@ -42,9 +44,9 @@ cifar2_val = [(img, label_map[label]) for img, label in cifar10_val if label in 
 # n_out = 2
 
 # create model
-model = nn.Sequential(nn.Linear(3072, 512),
+model = nn.Sequential(nn.Linear(3072, 128),
                       nn.Tanh(),
-                      nn.Linear(512, 2),
+                      nn.Linear(128, 2),
                       nn.LogSoftmax(dim=1))
 
 # set learning rate
@@ -61,9 +63,9 @@ n_epochs = 100
 
 loss = None
 for epoch in range(n_epochs):
-    for img, label in cifar2:
-        out = model(img.view(-1).unsqueeze(0))
-        loss = loss_fn(out, torch.tensor([label]))
+    for imgs, labels in train_loader:
+        outputs = model(imgs.view(imgs.shape[0], -1))
+        loss = loss_fn(outputs, labels)
 
         optimizer.zero_grad()
         loss.backward()
