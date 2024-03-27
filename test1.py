@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import torch.optim as optim
@@ -8,6 +9,8 @@ from torchvision import datasets
 from torchvision import transforms
 from IPython.display import display
 
+# this is a question
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # data loading
 data_path = './datasets/'
@@ -62,10 +65,22 @@ loss_fn = nn.NLLLoss()
 # set epochs
 n_epochs = 100
 
+# specify the device as "cuda"
+device = torch.device("cuda")
+
+# move your model to the device
+model.to(device)
+
+# move your data to the device
+# for imgs, l in train_loader:
+#     data_t = data_t.to(device)
+
 loss = None
 loss_values = []
 for epoch in range(n_epochs):
     for imgs, labels in train_loader:
+        imgs = imgs.to(device)
+        labels = labels.to(device)
         outputs = model(imgs.view(imgs.shape[0], -1))
         loss = loss_fn(outputs, labels)
 
