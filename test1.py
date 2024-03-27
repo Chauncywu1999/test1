@@ -45,10 +45,13 @@ train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
 
 # create model
-model = nn.Sequential(nn.Linear(3072, 512),
+model = nn.Sequential(nn.Linear(3072, 1024),
                       nn.Tanh(),
-                      nn.Linear(512, 2),
-                      nn.LogSoftmax(dim=1))
+                      nn.Linear(1024, 512),
+                      nn.Tanh(),
+                      nn.Linear(512, 128),
+                      nn.Tanh(),
+                      nn.Linear(128, 2))
 
 # set learning rate
 learning_rate = 1e-2
@@ -57,7 +60,7 @@ learning_rate = 1e-2
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # set loss function
-loss_fn = nn.NLLLoss()
+loss_fn = nn.CrossEntropyLoss()
 
 # set epochs
 n_epochs = 156
