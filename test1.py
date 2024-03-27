@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import torch.optim as optim
 import torch.utils.data
 import torch.nn as nn
@@ -44,9 +45,9 @@ train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 # n_out = 2
 
 # create model
-model = nn.Sequential(nn.Linear(3072, 128),
+model = nn.Sequential(nn.Linear(3072, 512),
                       nn.Tanh(),
-                      nn.Linear(128, 2),
+                      nn.Linear(512, 2),
                       nn.LogSoftmax(dim=1))
 
 # set learning rate
@@ -62,6 +63,7 @@ loss_fn = nn.NLLLoss()
 n_epochs = 100
 
 loss = None
+loss_values = []
 for epoch in range(n_epochs):
     for imgs, labels in train_loader:
         outputs = model(imgs.view(imgs.shape[0], -1))
@@ -71,4 +73,11 @@ for epoch in range(n_epochs):
         loss.backward()
         optimizer.step()
 
+    loss_values.append(float(loss))
     print("Epoch: %d, Loss: %f" % (epoch, float(loss)))
+
+plt.plot(np.arange(1, len(loss_values) + 1), loss_values)
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.show()
+
