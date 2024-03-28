@@ -60,7 +60,7 @@ learning_rate = 1e-2
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # set loss function
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.MSELoss()
 
 # set epochs
 n_epochs = 156
@@ -79,8 +79,13 @@ for epoch in range(n_epochs):
         imgs = imgs.to(device)
         labels = labels.to(device)
 
+        # create a one-hot encoding with labels
+        labels_encoding = torch.zeros((imgs.shape[0], 2))
+        labels_encoding = labels_encoding.to(device)
+        labels_encoding.scatter_(1, labels.unsqueeze(1), 1.0)
+
         outputs = model(imgs.view(imgs.shape[0], -1))
-        loss = loss_fn(outputs, labels)
+        loss = loss_fn(outputs, labels_encoding)
 
         optimizer.zero_grad()
         loss.backward()
