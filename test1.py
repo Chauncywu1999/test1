@@ -12,16 +12,22 @@ from IPython.display import display
 # this is a question
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
+# define a transformation pipeline with random cropping
+train_data_transfrom = transforms.Compose([transforms.RandomCrop(30),
+                                           transforms.ToTensor(),
+                                           transforms.Normalize((0.4914, 0.4822, 0.4465),
+                                                                (0.2470, 0.2435, 0.2616))])
+
+val_data_transfrom = transforms.Compose([transforms.RandomCrop(30),
+                                         transforms.ToTensor(),
+                                         transforms.Normalize((0.4942, 0.4851, 0.4504),
+                                                              (0.2467, 0.2429, 0.2616))])
+
 # data loading
 data_path = './datasets/'
-cifar10 = datasets.CIFAR10(data_path, train=True, download=True,
-                           transform=transforms.Compose([transforms.ToTensor(),
-                                                         transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                                                              (0.2470, 0.2435, 0.2616))]))
-cifar10_val = datasets.CIFAR10(data_path, train=False, download=True,
-                               transform=transforms.Compose([transforms.ToTensor(),
-                                                             transforms.Normalize((0.4942, 0.4851, 0.4504),
-                                                                                  (0.2467, 0.2429, 0.2616))]))
+cifar10 = datasets.CIFAR10(data_path, train=True, download=True, transform=train_data_transfrom)
+
+cifar10_val = datasets.CIFAR10(data_path, train=False, download=True, transform=val_data_transfrom)
 
 # # calculate the mean and std
 # imgs = torch.stack([img_t for img_t, _ in cifar10], dim=3)
@@ -31,6 +37,10 @@ cifar10_val = datasets.CIFAR10(data_path, train=False, download=True,
 # display(imgs_val.view(3, -1).mean(dim=1))
 # display(imgs_val.view(3, -1).std(dim=1))
 
+# # test the cropping img
+# img, _ = cifar10[0]
+# plt.imshow(img.permute(1, 2, 0))
+# plt.show()
 
 # datasets extract
 label_map = {0: 0, 2: 1}
@@ -45,7 +55,7 @@ train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
 
 # create model
-model = nn.Sequential(nn.Linear(3072, 1024),
+model = nn.Sequential(nn.Linear(2700, 1024),
                       nn.Tanh(),
                       nn.Linear(1024, 512),
                       nn.Tanh(),
@@ -92,6 +102,7 @@ for epoch in range(n_epochs):
 plt.plot(np.arange(1, len(loss_values) + 1), loss_values)
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
+plt.title("RandomCrop(30)")
 plt.show()
 
 # compute the Accuracy
@@ -111,5 +122,3 @@ with torch.no_grad():
         correct += int((predicted == labels).sum())
 
 print("Accuracy: %f" % (correct / total))
-
-
