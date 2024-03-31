@@ -113,5 +113,9 @@ loss_fn = nn.CrossEntropyLoss()
 # set the training loop parameters
 training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
+# save the model as a file
+model_path = './models/'
+torch.save(model.state_dict(), model_path + 'birds_vs_airplanes.pt')
+
 # set the measuring accuracy parameters
 validate(model, train_loader, val_loader)
