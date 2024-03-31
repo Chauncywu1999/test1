@@ -49,6 +49,22 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
                                                          loss_train / len(train_loader)))
 
 
+# create a validate function to measuring accuracy
+def validate(model, train_loader, val_loader):
+    for name, loader in [("train", train_loader), ("val", val_loader)]:
+        correct = 0
+        total = 0
+
+        with torch.no_grad():
+            for imgs, labels in loader:
+                outputs = model(imgs)
+                _, predicted = torch.max(outputs, dim=1)
+                total += labels.shape[0]
+                correct += int((predicted == labels).sum())
+
+        print("Accuracy {}: {:.2f}".format(name, correct / total))
+
+
 # this is a question
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -88,3 +104,5 @@ loss_fn = nn.CrossEntropyLoss()
 # set the training loop parameters
 training_loop(n_epochs=100, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
+# set the measuring accuracy parameters
+validate(model, train_loader, val_loader)
