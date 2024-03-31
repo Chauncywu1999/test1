@@ -35,6 +35,9 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
     for epoch in range(1, n_epochs + 1):
         loss_train = 0.0
         for imgs, labels in train_loader:
+            imgs = imgs.to(device=device)
+            labels = labels.to(device=device)
+
             outputs = model(imgs)
             loss = loss_fn(outputs, labels)
 
@@ -44,7 +47,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
 
             loss_train += loss.item()
 
-        if epoch == 1 or epoch % 10 == 0:
+        if epoch == 1 or epoch % 100 == 0:
             print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch,
                                                          loss_train / len(train_loader)))
 
@@ -57,6 +60,9 @@ def validate(model, train_loader, val_loader):
 
         with torch.no_grad():
             for imgs, labels in loader:
+                imgs = imgs.to(device=device)
+                labels = labels.to(device=device)
+
                 outputs = model(imgs)
                 _, predicted = torch.max(outputs, dim=1)
                 total += labels.shape[0]
@@ -92,8 +98,11 @@ train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 # set minibatch to validation set
 val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
 
+# check the device on computer
+device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+
 # instantiates the Net
-model = Net()
+model = Net().to(device=device)
 
 # define the optimizer
 optimizer = optim.SGD(model.parameters(), lr=1e-2)
@@ -102,7 +111,7 @@ optimizer = optim.SGD(model.parameters(), lr=1e-2)
 loss_fn = nn.CrossEntropyLoss()
 
 # set the training loop parameters
-training_loop(n_epochs=100, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
+training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
 # set the measuring accuracy parameters
 validate(model, train_loader, val_loader)
