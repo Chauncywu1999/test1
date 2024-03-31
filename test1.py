@@ -1,6 +1,8 @@
 import os
 import torch
+import datetime
 import numpy as np
+import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import torch.nn as nn
@@ -8,6 +10,44 @@ import matplotlib.pyplot as plt
 from torchvision import datasets
 from torchvision import transforms
 from IPython.display import display
+
+
+# create the custom Net
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 8, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(8 * 8 * 8, 32)
+        self.fc2 = nn.Linear(32, 2)
+
+    def forward(self, x):
+        out = F.max_pool2d(torch.tanh(self.conv1(x)), 2)
+        out = F.max_pool2d(torch.tanh(self.conv2(out)), 2)
+        out = out.view(-1, 8 * 8 * 8)
+        out = torch.tanh(self.fc1(out))
+        out = self.fc2(out)
+        return out
+
+
+# create the training loop function
+def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
+    for epoch in range(1, n_epochs + 1):
+        loss_train = 0.0
+        for imgs, labels in train_loader:
+            outputs = model(imgs)
+            loss = loss_fn(outputs, labels)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_train += loss.item()
+
+        if epoch == 1 or epoch % 10 == 0:
+            print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch,
+                                                         loss_train / len(train_loader)))
+
 
 # this is a question
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -23,14 +63,6 @@ cifar10_val = datasets.CIFAR10(data_path, train=False, download=True,
                                                              transforms.Normalize((0.4942, 0.4851, 0.4504),
                                                                                   (0.2467, 0.2429, 0.2616))]))
 
-# # calculate the mean and std
-# imgs = torch.stack([img_t for img_t, _ in cifar10], dim=3)
-# display(imgs.view(3, -1).mean(dim=1))
-# display(imgs.view(3, -1).std(dim=1))
-# imgs_val = torch.stack([img_t for img_t, _ in cifar10_val], dim=3)
-# display(imgs_val.view(3, -1).mean(dim=1))
-# display(imgs_val.view(3, -1).std(dim=1))
-
 
 # datasets extract
 label_map = {0: 0, 2: 1}
@@ -44,77 +76,15 @@ train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)
 # set minibatch to validation set
 val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
 
-# create model
-model = nn.Sequential(nn.Linear(3072, 1024),
-                      nn.Tanh(),
-                      nn.Linear(1024, 512),
-                      nn.Tanh(),
-                      nn.Linear(512, 128),
-                      nn.Tanh(),
-                      nn.Linear(128, 2))
+# instantiates the Net
+model = Net()
 
-# set learning rate
-learning_rate = 1e-2
+# define the optimizer
+optimizer = optim.SGD(model.parameters(), lr=1e-2)
 
-# set SGD as optimizer
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+# define the loss function
+loss_fn = nn.CrossEntropyLoss()
 
-# set loss function
-loss_fn = nn.MSELoss()
-
-# set epochs
-n_epochs = 156
-
-# specify the device as "cuda"
-device = torch.device("cuda")
-
-# move your model to the device
-model.to(device)
-
-loss = None
-loss_values = []
-for epoch in range(n_epochs):
-    for imgs, labels in train_loader:
-        # move data to the device
-        imgs = imgs.to(device)
-        labels = labels.to(device)
-
-        # create a one-hot encoding with labels
-        labels_encoding = torch.zeros((imgs.shape[0], 2))
-        labels_encoding = labels_encoding.to(device)
-        labels_encoding.scatter_(1, labels.unsqueeze(1), 1.0)
-
-        outputs = model(imgs.view(imgs.shape[0], -1))
-        loss = loss_fn(outputs, labels_encoding)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-    loss_values.append(float(loss))
-    print("Epoch: %d, Loss: %f" % (epoch, float(loss)))
-
-plt.plot(np.arange(1, len(loss_values) + 1), loss_values)
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.show()
-
-# compute the Accuracy
-correct = 0
-total = 0
-
-with torch.no_grad():
-    for imgs, labels in val_loader:
-        # move data to the device
-        imgs = imgs.to(device)
-        labels = labels.to(device)
-
-        batch_size = imgs.shape[0]
-        outputs = model(imgs.view(batch_size, -1))
-        _, predicted = torch.max(outputs, dim=1)
-        total += labels.shape[0]
-        correct += int((predicted == labels).sum())
-
-print("Accuracy: %f" % (correct / total))
-
+# set the training loop parameters
+training_loop(n_epochs=100, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
