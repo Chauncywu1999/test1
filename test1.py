@@ -53,6 +53,32 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
                                                          loss_train / len(train_loader)))
 
 
+# create the regularization training loop function
+def training_loop_12reg(n_epochs, optimizer, model, loss_fn, train_loader):
+    for epoch in range(1, n_epochs + 1):
+        loss_train = 0.0
+        for imgs, labels in train_loader:
+            imgs = imgs.to(device=device)
+            labels = labels.to(device=device)
+            outputs = model(imgs)
+            loss = loss_fn(outputs, labels)
+
+            l2_lambda = 0.001
+            l2_norm = sum(p.pow(2.0).sum() for p in model.parameters())
+
+            loss = loss + l2_lambda * l2_norm
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_train += loss.item()
+
+        if epoch == 1 or epoch % 100 == 0:
+            print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch,
+                                                         loss_train / len(train_loader)))
+
+
 # create a validate function to measuring accuracy
 def validate(model, train_loader, val_loader):
     for name, loader in [("train", train_loader), ("val", val_loader)]:
@@ -113,7 +139,7 @@ optimizer = optim.SGD(model.parameters(), lr=1e-2)
 loss_fn = nn.CrossEntropyLoss()
 
 # set the training loop parameters
-training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
+training_loop_12reg(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
 # save the model as a file
 # model_path = './models/'
