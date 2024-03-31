@@ -13,18 +13,19 @@ from IPython.display import display
 
 
 # create the custom Net
-class Net(nn.Module):
-    def __init__(self):
+class NetWidth(nn.Module):
+    def __init__(self, n_chansl=32):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(16, 8, kernel_size=3, padding=1)
-        self.fc1 = nn.Linear(8 * 8 * 8, 32)
+        self.n_chansl = n_chansl
+        self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(n_chansl, n_chansl // 2, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(8 * 8 * n_chansl // 2, 32)
         self.fc2 = nn.Linear(32, 2)
 
     def forward(self, x):
         out = F.max_pool2d(torch.tanh(self.conv1(x)), 2)
         out = F.max_pool2d(torch.tanh(self.conv2(out)), 2)
-        out = out.view(-1, 8 * 8 * 8)
+        out = out.view(-1, 8 * 8 * self.n_chansl // 2)
         out = torch.tanh(self.fc1(out))
         out = self.fc2(out)
         return out
@@ -102,24 +103,25 @@ val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=Fals
 device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
 
 # instantiates the Net
-# model = Net().to(device=device)
+model = NetWidth().to(device=device)
+# print(sum(p.numel() for p in model.parameters()))
 
 # define the optimizer
-# optimizer = optim.SGD(model.parameters(), lr=1e-2)
+optimizer = optim.SGD(model.parameters(), lr=1e-2)
 
 # define the loss function
 loss_fn = nn.CrossEntropyLoss()
 
 # set the training loop parameters
-# training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
+training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
 # save the model as a file
-model_path = './models/'
+# model_path = './models/'
 # torch.save(model.state_dict(), model_path + 'birds_vs_airplanes.pt')
 
 # load model to compute the validation loss
-loaded_model = Net().to(device=device)
-loaded_model.load_state_dict(torch.load(model_path + 'birds_vs_airplanes.pt', map_location=device))
+# loaded_model = Net().to(device=device)
+# loaded_model.load_state_dict(torch.load(model_path + 'birds_vs_airplanes.pt', map_location=device))
 
 # set the measuring accuracy parameters
-validate(loaded_model, train_loader, val_loader)
+validate(model, train_loader, val_loader)
