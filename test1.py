@@ -102,20 +102,24 @@ val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=Fals
 device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
 
 # instantiates the Net
-model = Net().to(device=device)
+# model = Net().to(device=device)
 
 # define the optimizer
-optimizer = optim.SGD(model.parameters(), lr=1e-2)
+# optimizer = optim.SGD(model.parameters(), lr=1e-2)
 
 # define the loss function
 loss_fn = nn.CrossEntropyLoss()
 
 # set the training loop parameters
-training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
+# training_loop(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
 # save the model as a file
 model_path = './models/'
-torch.save(model.state_dict(), model_path + 'birds_vs_airplanes.pt')
+# torch.save(model.state_dict(), model_path + 'birds_vs_airplanes.pt')
+
+# load model to compute the validation loss
+loaded_model = Net().to(device=device)
+loaded_model.load_state_dict(torch.load(model_path + 'birds_vs_airplanes.pt', map_location=device))
 
 # set the measuring accuracy parameters
-validate(model, train_loader, val_loader)
+validate(loaded_model, train_loader, val_loader)
