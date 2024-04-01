@@ -33,7 +33,7 @@ class NetWidth(nn.Module):
 
 # implement dropout in Net
 class NetDropout(nn.Module):
-    def __int__(self, n_chansl=32):
+    def __init__(self, n_chansl=32):
         super().__init__()
         self.n_chansl = n_chansl
         self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
@@ -56,7 +56,7 @@ class NetDropout(nn.Module):
 
 # implement batch normalization in Net
 class NetBatchNorm(nn.Module):
-    def __int__(self, n_chansl=32):
+    def __init__(self, n_chansl=32):
         super().__init__()
         self.n_chansl = n_chansl
         self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
@@ -73,6 +73,43 @@ class NetBatchNorm(nn.Module):
         out = F.max_pool2d((torch.tanh(out)), 2)
         out = out.view(-1, 8 * 8 * self.n_chansl // 2)
         out = torch.tanh(self.fc1(out))
+        out = self.fc2(out)
+        return out
+
+
+# building very deep models
+class ResBlock(nn.Module):
+    def __init__(self, n_chans):
+        super(ResBlock, self).__init__()
+        self.conv = nn.Conv2d(n_chans, n_chans, kernel_size=3, padding=1, bias=False)
+        self.batch_norm = nn.BatchNorm2d(num_features=n_chans)
+        torch.nn.init.kaiming_normal_(self.conv.weight, nonlinearity='relu')
+        torch.nn.init.constant_(self.batch_norm.weight, 0.5)
+        torch.nn.init.zeros_(self.batch_norm.bias)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.batch_norm(out)
+        out = torch.relu(out)
+        return out + x
+
+
+# define the class of NetResDeep
+class NetResDeep(nn.Module):
+    def __init__(self, n_chansl=32, n_blocks=10):
+        super().__init__()
+        self.n_chansl = n_chansl
+        self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
+        self.resblocks = nn.Sequential(*(n_blocks * [ResBlock(n_chans=n_chansl)]))
+        self.fc1 = nn.Linear(8 * 8 * n_chansl, 32)
+        self.fc2 = nn.Linear(32, 2)
+
+    def forward(self, x):
+        out = F.max_pool2d(torch.relu(self.conv1(x)), 2)
+        out = self.resblocks(out)
+        out = F.max_pool2d(out, 2)
+        out = out.view(-1, 8 * 8 * self.n_chansl)
+        out = torch.relu(self.fc1(out))
         out = self.fc2(out)
         return out
 
@@ -185,7 +222,7 @@ optimizer = optim.SGD(model.parameters(), lr=1e-2)
 loss_fn = nn.CrossEntropyLoss()
 
 # set the training loop parameters
-training_loop_12reg(n_epochs=1000, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
+training_loop_12reg(n_epochs=500, optimizer=optimizer, model=model, loss_fn=loss_fn, train_loader=train_loader)
 
 # save the model as a file
 # model_path = './models/'
