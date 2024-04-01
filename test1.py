@@ -31,6 +31,29 @@ class NetWidth(nn.Module):
         return out
 
 
+# implement dropout in Net
+class NetDropout(nn.Module):
+    def __int__(self, n_chansl=32):
+        super().__init__()
+        self.n_chansl = n_chansl
+        self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
+        self.conv1_dropout = nn.Dropout2d(p=0.4)
+        self.conv2 = nn.Conv2d(n_chansl, n_chansl // 2, kernel_size=3, padding=1)
+        self.conv2_dropout = nn.Dropout2d(p=0.4)
+        self.fc1 = nn.Linear(8 * 8 * n_chansl // 2, 32)
+        self.fc2 = nn.Linear(32, 2)
+
+    def forward(self, x):
+        out = F.max_pool2d(torch.tanh(self.conv1(x)), 2)
+        out = self.conv1_dropout(out)
+        out = F.max_pool2d(torch.tanh(self.conv2(out)), 2)
+        out = self.conv2_dropout(out)
+        out = out.view(-1, 8 * 8 * self.n_chansl // 2)
+        out = torch.tanh(self.fc1(out))
+        out = self.fc2(out)
+        return out
+
+
 # create the training loop function
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
     for epoch in range(1, n_epochs + 1):
