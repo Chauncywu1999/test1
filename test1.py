@@ -54,6 +54,29 @@ class NetDropout(nn.Module):
         return out
 
 
+# implement batch normalization in Net
+class NetBatchNorm(nn.Module):
+    def __int__(self, n_chansl=32):
+        super().__init__()
+        self.n_chansl = n_chansl
+        self.conv1 = nn.Conv2d(3, n_chansl, kernel_size=3, padding=1)
+        self.conv1_batchnorm = nn.BatchNorm2d(num_features=n_chansl)
+        self.conv2 = nn.Conv2d(n_chansl, n_chansl // 2, kernel_size=3, padding=1)
+        self.conv2_batchnorm = nn.BatchNorm2d(num_features=n_chansl)
+        self.fc1 = nn.Linear(8 * 8 * n_chansl // 2, 32)
+        self.fc2 = nn.Linear(32, 2)
+
+    def forward(self, x):
+        out = self.conv1_batchnorm(self.conv1(x))
+        out = F.max_pool2d((torch.tanh(out)), 2)
+        out = self.conv2_batchnorm(self.conv2(out))
+        out = F.max_pool2d((torch.tanh(out)), 2)
+        out = out.view(-1, 8 * 8 * self.n_chansl // 2)
+        out = torch.tanh(self.fc1(out))
+        out = self.fc2(out)
+        return out
+
+
 # create the training loop function
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
     for epoch in range(1, n_epochs + 1):
